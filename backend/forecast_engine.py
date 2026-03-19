@@ -205,10 +205,10 @@ def run_forecast(
             "yhat_upper": round(float(row["yhat_upper"]), 4),
         })
 
-    print(f"[FORECAST ENGINE] {currency}/INR  |  Current: {current_rate}  →  "
+    print(f"[FORECAST ENGINE] {currency}/INR  |  Current: {current_rate}  ->  "
           f"Predicted: {predicted_rate}  ({'+' if change_pct >= 0 else ''}"
           f"{change_pct}%)  |  Trend: {trend}")
-    print(f"[FORECAST ENGINE] 95% CI  →  Lower: {forecast_lower}  |  "
+    print(f"[FORECAST ENGINE] 95% CI  ->  Lower: {forecast_lower}  |  "
           f"Upper: {forecast_upper}")
 
     return {
@@ -229,7 +229,7 @@ def run_forecast(
             f"Over the next {days} days it is forecast to move to "
             f"{predicted_rate} (trend: {trend}). "
             f"The 95% confidence band is "
-            f"{forecast_lower} – {forecast_upper}."
+            f"{forecast_lower} to {forecast_upper}."
         ),
     }
 
@@ -291,7 +291,7 @@ if __name__ == "__main__":
         print(f"   Training Rows   : {result['training_rows']}")
         print(f"\n   7-Day Outlook:")
         for day in result["forecast_table"]:
-            print(f"     {day['ds']}  →  ₹{day['yhat']:.2f}  "
-                  f"( {day['yhat_lower']:.2f} – {day['yhat_upper']:.2f} )")
+            print(f"     {day['ds']}  ->  Rs.{day['yhat']:.2f}  "
+                  f"( {day['yhat_lower']:.2f} - {day['yhat_upper']:.2f} )")
     else:
         print(f"\n❌  Forecast failed: {result['message']}")

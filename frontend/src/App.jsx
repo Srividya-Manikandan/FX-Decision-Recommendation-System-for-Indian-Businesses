@@ -91,8 +91,14 @@ function App() {
                           {pairData?.trend}WARD TREND
                         </span>
                       </div>
-                      <div style={{ padding: '4px 10px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
-                        {horizon}D Forecast: ₹{pairData?.forecast_rate || '---'}
+                      <div style={{ padding: '4px 10px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', marginTop: '6px' }}>
+                        <div style={{ marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 700, opacity: 0.7 }}>{horizon}D Forecast:</span> ₹{pairData?.forecast_rate || '---'}
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', fontSize: '0.65rem', opacity: 0.8 }}>
+                          <span><span style={{color: '#ef4444'}}>▼</span> L: ₹{pairData?.forecast_lower || '---'}</span>
+                          <span><span style={{color: '#10b981'}}>▲</span> U: ₹{pairData?.forecast_upper || '---'}</span>
+                        </div>
                       </div>
                       
                       {/* Interactive Forecast Chart with Bands */}

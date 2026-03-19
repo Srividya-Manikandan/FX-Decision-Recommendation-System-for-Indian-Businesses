@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fx_engine import FXEngine
 from exposure_engine import ExposureEngine
 from risk_engine import calculate_risk_metrics
+from forecast_engine import run_forecast, run_all_forecasts
 from business_logic import (
     get_business_exposure,
     calculate_profit_at_risk,
@@ -247,7 +248,101 @@ def business_recommendation():
 
 
 # ---------------------------------------------------------------------------
-# 4. Plot Image Endpoints
+# 4. Forecast Endpoints (Adwaitha's forecast_engine)
+# ---------------------------------------------------------------------------
+@app.route('/api/forecast', methods=['GET'])
+def get_detailed_forecast():
+    """
+    Returns full Prophet forecast data for a specific currency.
+    Query params:
+      - currency: USD, GBP, EUR, JPY (default: USD)
+      - days: forecast horizon (default: 7)
+      - date: optional target date (YYYY-MM-DD).
+              If PAST: uses data up to that date, forecasts 'days' from there.
+              If FUTURE: forecasts far enough to cover date + days, then slices.
+    """
+    currency = request.args.get('currency', 'USD')
+    days = int(request.args.get('days', 7))
+    target_date = request.args.get('date', None)
+
+    try:
+        from data_engine import get_final_data
+        import pandas as pd
+        from datetime import datetime, timedelta
+
+        df, _adf = get_final_data()
+        last_data_date = df.index[-1]
+
+        if target_date:
+            cutoff = pd.to_datetime(target_date)
+
+            if cutoff <= last_data_date:
+                # PAST date: filter data up to that date, forecast 'days' forward
+                df = df[df.index <= cutoff]
+                if len(df) < 30:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Not enough data before {target_date}.'
+                    }), 400
+                result = run_forecast(currency=currency, days=days, df=df)
+            else:
+                # FUTURE date: forecast extra days so we can slice from target_date
+                days_to_target = (cutoff - last_data_date).days
+                total_days_needed = days_to_target + days
+                result = run_forecast(currency=currency, days=total_days_needed, df=df)
+
+                # Slice the forecast_table to only show 'days' entries starting from target_date
+                if result.get('status') == 'success' and result.get('forecast_table'):
+                    full_table = result['forecast_table']
+                    sliced = [row for row in full_table if pd.to_datetime(row['ds']) >= cutoff]
+                    sliced = sliced[:days]  # keep only 'days' worth
+
+                    if sliced:
+                        result['forecast_table'] = sliced
+                        # Update the summary KPIs to match the sliced window
+                        result['predicted_rate'] = round(sliced[-1]['yhat'], 4)
+                        result['forecast_upper'] = round(sliced[-1]['yhat_upper'], 4)
+                        result['forecast_lower'] = round(sliced[-1]['yhat_lower'], 4)
+                        last_rate = result['current_rate']
+                        new_pred = sliced[-1]['yhat']
+                        result['change_percent'] = round(((new_pred - last_rate) / last_rate) * 100, 3)
+                        result['trend'] = 'UP' if new_pred > last_rate else 'DOWN'
+                        result['message'] = (
+                            f"The {currency}/INR rate is currently {last_rate}. "
+                            f"By {sliced[-1]['ds']} it is forecast to move to {round(new_pred, 4)} "
+                            f"(trend: {result['trend']}). The 95% confidence band is "
+                            f"{round(sliced[-1]['yhat_lower'], 4)} – {round(sliced[-1]['yhat_upper'], 4)}."
+                        )
+        else:
+            result = run_forecast(currency=currency, days=days, df=df)
+
+        return jsonify(sanitize(result))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/forecast/all', methods=['GET'])
+def get_all_forecasts():
+    """
+    Returns forecasts for ALL 4 currencies in one call.
+    Query params:
+      - days: forecast horizon (default: 7)
+    """
+    days = int(request.args.get('days', 7))
+
+    try:
+        results = {}
+        for cur in ['USD', 'GBP', 'EUR', 'JPY']:
+            results[cur] = run_forecast(currency=cur, days=days)
+        return jsonify(sanitize(results))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# 5. Plot Image Endpoints
 # ---------------------------------------------------------------------------
 @app.route('/api/plots', methods=['GET'])
 def list_plots():

@@ -168,7 +168,6 @@ with chart_tab1:
         f_df = pd.DataFrame(forecast_res['full_forecast'])
         f_df['ds'] = pd.to_datetime(f_df['ds'])
         
-<<<<<<< HEAD
         # Historical portion (last 90 days)
         hist_df = df_master[[selected_currency]].tail(90).reset_index()
         hist_df.columns = ['Date', 'Value']
@@ -232,83 +231,6 @@ with chart_tab2:
         st.write(f"**Worst Case Impact:** ₹{par['profit_at_risk_inr']:,.0f}")
         st.write(f"**Maximum Profit-at-Risk:** {par['profit_at_risk_lakhs']} Lakhs")
         st.warning(par['warning'])
-=======
-        # If currency is not USD, we should ideally fetch that specific pair
-        # For this prototype, we'll use the 'current_rate' which defaults to USD in many places 
-        # or we fetch specifically:
-        pairs = dashboard_data.get('pairs', {})
-        pair_data = pairs.get(currency, {})
-        current_rate = pair_data.get('current_rate', 83.0) # Fallback if missing
-
-        if not current_rate:
-             return jsonify({"error": f"Rate unavailable for {currency}"}), 400
-
-        scenarios = exposure_engine.calculate_scenarios(amount, current_rate, business_type)
-        sensitivity = exposure_engine.get_sensitivity(amount, business_type)
-
-        return jsonify({
-            "current_rate": current_rate,
-            "scenarios": scenarios,
-            "sensitivity": sensitivity
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/business-recommendation', methods=['POST'])
-def business_recommendation():
-    """
-    Full business recommendation using business_logic.py.
-    Expects JSON: { "deal_size": 100000, "currency": "USD", "type": "Importer", "target_margin": 10.0 }
-    Returns: exposure profile, profit-at-risk, recommendation, sensitivity matrix, break_even.
-    """
-    try:
-        req = request.json
-        deal_size = float(req.get('deal_size', 100000))
-        currency = req.get('currency', 'USD')
-        business_type = req.get('type', 'Importer')
-        target_margin = float(req.get('target_margin', 10.0))
-
-        # Pull live data from fx_engine
-        dashboard_data = engine.get_full_dashboard()
-        pairs = dashboard_data.get('pairs', {})
-        pair_data = pairs.get(currency, {})
-
-        if not pair_data or 'error' in pair_data:
-            return jsonify({"error": f"No data available for {currency}"}), 400
-
-        current_rate = pair_data.get('current_rate', 85.0)
-        predicted_rate = pair_data.get('forecast_7d', current_rate)
-        risk_score = pair_data.get('risk_score', 50)
-        risk_level = pair_data.get('risk_level', 'Medium')
-        trend = pair_data.get('trend', 'UP')
-
-        # Estimate forecast bounds (~1.5% band around prediction)
-        band = current_rate * 0.015
-        forecast_upper = predicted_rate + band
-        forecast_lower = predicted_rate - band
-
-        # Call business_logic functions
-        exposure = get_business_exposure(deal_size, business_type, current_rate)
-        par = calculate_profit_at_risk(
-            deal_size, business_type, current_rate, forecast_upper, forecast_lower
-        )
-        recommendation = get_business_recommendation(
-            deal_size, business_type, risk_score, risk_level, trend,
-            current_rate, predicted_rate
-        )
-        sensitivity = generate_sensitivity_matrix(deal_size, business_type, current_rate, target_margin)
-        break_even = calculate_break_even_rate(deal_size, business_type, current_rate, target_margin)
-
-        return jsonify({
-            "currency": currency,
-            "exposure": exposure,
-            "profit_at_risk": par,
-            "recommendation": recommendation,
-            "sensitivity_matrix": sensitivity,
-            "break_even": break_even,
-        })
->>>>>>> origin/main
 
     # Sensitivity Heatmap
     st.subheader("What-If Matrix (Sensitivity)")

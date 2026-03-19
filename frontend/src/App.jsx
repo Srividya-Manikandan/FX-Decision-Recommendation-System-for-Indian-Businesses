@@ -19,6 +19,7 @@ import GlassCard from './components/GlassCard';
 import RateChart from './components/RateChart';
 import VolatilityChart from './components/VolatilityChart';
 import CorrelationMatrix from './components/CorrelationMatrix';
+import ForecastChart from './components/ForecastChart';
 import RiskMap from './components/RiskMap';
 import PersonaCards from './components/PersonaCards';
 import ExposureCalculator from './components/ExposureCalculator';
@@ -93,6 +94,14 @@ function App() {
                       <div style={{ padding: '4px 10px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
                         {horizon}D Forecast: ₹{pairData?.forecast_rate || '---'}
                       </div>
+                      
+                      {/* Interactive Forecast Chart with Bands */}
+                      <ForecastChart 
+                        data={pairData?.forecast_table} 
+                        currency={curr.code} 
+                        color={curr.color} 
+                        horizon={horizon} 
+                      />
                     </div>
                   </GlassCard>
                 );

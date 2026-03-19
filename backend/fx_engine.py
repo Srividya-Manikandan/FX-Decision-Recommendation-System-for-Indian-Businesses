@@ -137,41 +137,15 @@ class FXEngine:
             df_slice = self.df_master
 
         if df_slice.empty: return {"error": f"Target date outside data range for {currency}"}
-        if currency not in df_slice.columns: return {"error": f"Currency {currency} not found"}
+        from forecast_engine import run_forecast
         
-        # Need at least 30 days of data for a reasonable forecast
-        if len(df_slice) < 30: return {"error": f"Insufficient historical data for {currency} forecast"}
-
-        # Use only last 365 days for faster training (or all data if less than 365 days)
-        training_data = df_slice.tail(min(365, len(df_slice)))
-        pdf = training_data.reset_index()[['Date', currency]]
-        pdf.columns = ['ds', 'y']
+        # We pass df_slice directly to forecast_engine which handles data prep
+        res = run_forecast(currency=currency, days=days, df=df_slice)
         
-        # Suppress Prophet's verbose output
-        import logging
-        logging.getLogger('prophet').setLevel(logging.WARNING)
-        logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
-        
-        m = Prophet(daily_seasonality=False, weekly_seasonality=True, yearly_seasonality=True)
-        m.fit(pdf)
-        
-        future = m.make_future_dataframe(periods=days)
-        forecast = m.predict(future)
-        
-        if show_plot:
-            fig = m.plot(forecast)
-            plt.title(f"{currency}-INR Forecast from {df_slice.index[-1].strftime('%Y-%m-%d')}")
-            plt.xlabel("Date")
-            plt.ylabel(f"Rate (INR/{currency})")
-            plt.show()
-
-        latest_pred = forecast['yhat'].iloc[-1]
-        current_rate = df_slice[currency].iloc[-1]
-        return {
-            "predicted_rate": round(latest_pred, 4),
-            "current_rate": round(current_rate, 4),
-            "trend": "UP" if latest_pred > current_rate else "DOWN"
-        }
+        if res.get("status") == "error":
+            return {"error": res.get("message")}
+            
+        return res
 
     def get_historical_data(self, days=90):
         """Returns historical rates for the last N days."""
@@ -290,6 +264,10 @@ class FXEngine:
                 "current_rate": forecast['current_rate'],
                 "forecast_days": forecast_days,
                 "forecast_rate": forecast['predicted_rate'],
+                "forecast_lower": forecast.get('forecast_lower'),
+                "forecast_upper": forecast.get('forecast_upper'),
+                "forecast_table": forecast.get('forecast_table', []),
+                "full_forecast": forecast.get('full_forecast', []),
                 "trend": forecast['trend'],
                 "risk_level": risk['level'],
                 "risk_score": risk['score'],

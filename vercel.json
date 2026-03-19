@@ -19,7 +19,7 @@
   ],
   "functions": {
     "api/*.py": {
-      "runtime": "python"
+      "runtime": "@vercel/python"
     }
   }
 }

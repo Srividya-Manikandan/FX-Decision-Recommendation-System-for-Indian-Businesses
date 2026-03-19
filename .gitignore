@@ -1,2 +1,9 @@
 .ipynb_checkpoints/
 data/raw/
+.vercel
+.vite/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.github/workflows/
